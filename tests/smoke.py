@@ -1,4 +1,3 @@
-"""Gerçek API + PostgreSQL entegrasyon testi. API çalışırken: python3 tests/smoke.py"""
 import concurrent.futures
 import json
 import os
@@ -43,7 +42,6 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
 assert all(r[0] == 201 for r in results)
 assert len({r[1] for r in results}) == 1
 assert sum(r[2]['Idempotency-Replayed'] == 'false' for r in results) == 1
-# Aynı anahtar için yarışan farklı payload'lardan yalnızca biri kabul edilmeli.
 conflict_key = str(uuid.uuid4())
 with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
     races = list(pool.map(lambda name: call('POST', '/products', {'name': name, 'price': 10}, conflict_key), ['A', 'B']))

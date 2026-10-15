@@ -1,4 +1,4 @@
-namespace Idempotency.Domain;
+namespace Idempotency.Domain.Entities;
 
 public sealed class Product
 {

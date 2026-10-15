@@ -1,1 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><ProjectReference Include="../Idempotency.Infrastructure/Idempotency.Infrastructure.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Idempotency.Application/Idempotency.Application.csproj" />
+    <ProjectReference Include="../Idempotency.Infrastructure/Idempotency.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -14,20 +14,33 @@ flowchart LR
     Application --> Domain[Domain: Product]
 ```
 
-- `Domain/Product.cs`: bağımsız ürün modeli.
-- `Application/Products.cs`: doğrulama, CreateProduct kullanım senaryosu ve IProductStore portu. EF Core veya ASP.NET referansı yoktur.
-- `Infrastructure/ProductStore.cs`: portun EF Core implementasyonu; transaction, PostgreSQL kilidi ve kalıcı yanıt kaydı.
-- `Api/Program.cs`: bağımlılıkların bağlandığı composition root ve HTTP uçları.
+- `Domain/Entities/`: bağımsız `Product` ve `IdempotencyRecord` entity sınıfları.
+- `Application/DTOs/`: istek ve saklanan yanıt modelleri.
+- `Application/Interfaces/`: `IProductService`, `IProductStore` ve `IHealthService` sözleşmeleri.
+- `Application/Services/ProductService.cs`: ürün doğrulama, normalizasyon, oluşturma ve okuma akışı. Application katmanının EF Core veya ASP.NET referansı yoktur.
+- `Application/Exceptions/`: idempotency çakışması gibi uygulama hataları.
+- `Infrastructure/Persistence/`: DbContext, entity konfigürasyonları ve `Repositories/ProductStore.cs`; transaction, PostgreSQL kilidi ve kalıcı yanıt kaydı.
+- `Infrastructure/Services/DatabaseHealthService.cs`: veritabanı bağlantı kontrolü.
+- `Infrastructure/DependencyInjection.cs`: altyapı servis kayıtları ve veritabanı başlangıcı.
+- `Api/Controllers/`: `ProductsController` ve `HealthController`; HTTP isteklerini service arayüzlerine iletir ve HTTP yanıtlarını oluşturur.
+- `Api/Program.cs`: servis kayıtları, middleware ve controller yönlendirmesi.
 
-Dosyalar `src/Idempotency.*` klasörlerindedir. Okuma sırası: Product → Products → ProductStore → Program.
+Dosyalar `src/Idempotency.*` klasörlerindedir. İstek akışı: ProductsController → IProductService / ProductService → IProductStore / ProductStore → ProductDbContext → PostgreSQL. HTTP uçları `POST /products`, `GET /products/{id}` ve `GET /health` adreslerindedir.
 
 ## Çalıştırma
 
 Gereksinimler: .NET 10 SDK, Docker + Compose. Entegrasyon testi için Python 3.
 
+Yerel bağlantı bilgileri `src/Idempotency.Api/appsettings.json` dosyasında, `compose.yaml` ile uyumlu olarak tanımlıdır. PostgreSQL çalışırken Rider'dan `Idempotency.Api` projesini doğrudan başlatabilir veya PowerShell'de aşağıdaki komutu kullanabilirsin; ayrıca ortam değişkeni tanımlaman gerekmez:
+
+```powershell
+dotnet run --project src/Idempotency.Api
+```
+
+Swagger adresi: `http://127.0.0.1:5080/swagger`. Kendi PostgreSQL kurulumunu kullanıyorsan `ConnectionStrings:Postgres` değerini kendi bağlantı bilgilerinle güncelle. `ConnectionStrings__Postgres` ortam değişkeni dosyadaki bağlantıyı geçersiz kılar. Portu değiştirmek için `dotnet run --project src/Idempotency.Api -- --urls http://127.0.0.1:5081` kullanabilirsin.
+
 ```bash
 cd /workspace/idempotencyKey
-# SDK bu bulut ortamında /workspace/.dotnet altında kurulu.
 export PATH="/workspace/.dotnet:$PATH"
 export DOTNET_CLI_HOME=/workspace/.dotnet-home
 export NUGET_PACKAGES=/workspace/.nuget/packages
@@ -45,6 +58,16 @@ dotnet run --project src/Idempotency.Api
 ```
 
 Compose parolası yalnızca yerel eğitim içindir; PostgreSQL portu loopback'e bağlıdır. Harici DB için bağlantı bilgisini ortam değişkeninden ver. API açılışta `EnsureCreatedAsync` ile **boş veritabanının** tablolarını oluşturur. Bu bir migration stratejisi değildir; şema değişiklikleri ve production dağıtımları için EF Core migration eklenmelidir. Mevcut başka tabloları olan bir veritabanı yerine bu projeye ayrılmış DB kullan.
+
+## Swagger ile test
+
+API çalışırken `http://127.0.0.1:5080/swagger` adresini aç. OpenAPI belgesi `/swagger/v1/swagger.json` adresindedir. Swagger arayüzü bu öğrenme projesinde tüm ortamlarda açıktır.
+
+1. `POST /products` bölümünü açıp **Try it out** seçeneğine tıkla.
+2. Zorunlu `Idempotency-Key` alanına `swagger-deneme-001` yaz.
+3. İstek gövdesini `{"name":"Kalem","price":25.50}` olarak doldur ve **Execute** seçeneğine tıkla.
+4. İlk yanıtta `201` ve `Idempotency-Replayed: false` görürsün. Aynı isteği tekrar gönderdiğinde ürün kimliği aynı kalır ve `Idempotency-Replayed: true` döner.
+5. Anahtarı aynı tutup fiyatı değiştirirsen `409` döner. Yeni anahtarla gönderirsen yeni ürün oluşturulur.
 
 ## Deney: aynı isteği tekrar gönder
 
