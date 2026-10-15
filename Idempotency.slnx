@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Idempotency.Api/Idempotency.Api.csproj" />
+    <Project Path="src/Idempotency.Application/Idempotency.Application.csproj" />
+    <Project Path="src/Idempotency.Domain/Idempotency.Domain.csproj" />
+    <Project Path="src/Idempotency.Infrastructure/Idempotency.Infrastructure.csproj" />
+  </Folder>
+</Solution>

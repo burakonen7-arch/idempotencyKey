@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Idempotency.Application/Idempotency.Application.csproj" /><PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" /></ItemGroup></Project>
